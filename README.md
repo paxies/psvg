@@ -1,4 +1,4 @@
-# pixel-perfect-svg
+# psvg
 
 [![main branch tests](https://github.com/kagof/pixel-perfect-svg/actions/workflows/test.yml/badge.svg)](https://gist.github.com/kagof/51cfc9d8c5122fb3581c383ac3ba5a54)[![npm version](https://img.shields.io/npm/v/pixel-perfect-svg)](https://www.npmjs.com/package/pixel-perfect-svg)
 
@@ -35,10 +35,14 @@ curl \
 
 ## Installing the CLI
 
-The CLI can be installed from NPM:
+The CLI can be installed by cloning the Git repository:
 
 ```bash
-npm install -g pixel-perfect-svg
+git clone git@github.com:paxies/psvg.git
+cd psvg
+npm install
+npm run build
+npm install -g .
 ```
 
 ## Using the CLI

@@ -10,6 +10,9 @@ import fs from 'fs';
 import { promisify } from 'util';
 import untildify from 'untildify';
 import { ReadStream } from 'tty';
+import glob from 'glob';
+import path from 'path';
+import { optimize } from 'svgo';
 
 pixelPerfectSvg();
 
@@ -22,6 +25,7 @@ async function pixelPerfectSvg() {
    .options({
      'input': { type: 'string', alias: 'i', description: 'input PNG, JPEG, or GIF file', normalize: true } as Options,
      'output': { type: 'string', alias: 'o', description: 'output SVG file', normalize: true } as Options,
+     'recursive': { type: 'boolean', boolean: true, alias: 'R', description: 'recursively process folder' } as Options,
      'frame': { type: 'number', alias: 'F', description: 'frame of the input image to use', default: 0 } as Options,
      'quiet': { type: 'boolean', boolean: true, alias: 'q', description: 'turn off logging' } as Options,
      'verbose': { type: 'boolean', boolean: true, alias: 'V', description: 'turn on verbose logging' } as Options,
@@ -61,42 +65,55 @@ async function pixelPerfectSvg() {
   const debug = (!!args.quiet || !args.verbose) ? () => undefined : (str: string) => {spinner.info(str); spinner.start();};
   try {
     spinner.start();
-    const buf = await readFile(args.input);
+    const inputs = args.recursive ? await glob(args.input + '/**/*.{png,jpeg,gif}') : [args.input];
 
-    spinner.start('checking image type');
-    const type = await fromBuffer(buf);
-    const mimeType = type && type.mime;
-    if (mimeType == null || ['image/png', 'image/gif', 'image/jpeg'].indexOf(mimeType) === -1) {
-      throw new Error(`unsupported input file type ${mimeType || ''}`);
-    }
-    debug(`input image type is ${mimeType}`);
-    spinner.start('parsing image');
-    const pixels = await loadPixels({ input: buf, mimeType: mimeType, debug });
-    spinner.start('generating SVG');
-    const svg = await toSvgString({
-      frame: pixels[args?.frame || 0],
-      pretty: args.pretty,
-      trimAlpha: args.trim,
-      noMetadata: args['no-metadata'],
-      maxLeftTrim: args['max-left-trim'],
-      maxRightTrim: args['max-right-trim'],
-      maxTopTrim: args['max-top-trim'],
-      maxBottomTrim: args['max-bottom-trim'],
-      minWidth: args['min-width'],
-      minHeight: args['min-height'],
-      debug: debug,
-    });
+    for (const input of inputs) {
+      const buf = await readFile(input);
 
-    if (args.output != null) {
-      spinner.start('writing file');
-      await promisify(fs.writeFile)(untildify(args.output), svg);
-      spinner.stop();
-    } else {
-      spinner.stop();
-      process.stdout.write(svg);
+      spinner.start('checking image type');
+      const type = await fromBuffer(buf);
+      const mimeType = type && type.mime;
+      if (mimeType == null || ['image/png', 'image/gif', 'image/jpeg'].indexOf(mimeType) === -1) {
+        throw new Error(`unsupported input file type ${mimeType || ''}`);
+      }
+      debug(`input image type is ${mimeType}`);
+      spinner.start('parsing image');
+      const pixels = await loadPixels({ input: buf, mimeType: mimeType, debug });
+      spinner.start('generating SVG');
+      const svg = optimize(await toSvgString({
+        frame: pixels[args?.frame || 0],
+        pretty: args.pretty,
+        trimAlpha: args.trim,
+        noMetadata: args['no-metadata'],
+        maxLeftTrim: args['max-left-trim'],
+        maxRightTrim: args['max-right-trim'],
+        maxTopTrim: args['max-top-trim'],
+        maxBottomTrim: args['max-bottom-trim'],
+        minWidth: args['min-width'],
+        minHeight: args['min-height'],
+        debug: debug,
+      }), {
+        multipass: true,
+      }).data;
+
+      if (args.output != null) {
+        spinner.start('writing file');
+
+        let output = args.output;
+        if (args.recursive && args.input && input) {
+          output = path.format({ ...path.parse(path.join(args.output, path.relative(args.input, input))), base: '', ext: '.svg' });
+          await promisify(fs.mkdir)(path.dirname(output), { recursive: true });
+        }
+
+        await promisify(fs.writeFile)(untildify(output), svg);
+        spinner.stop();
+      } else {
+        spinner.stop();
+        process.stdout.write(svg);
+      }
+      const endTime = process.hrtime(startTime);
+      spinner.succeed(`finished processing in ${endTime[0]}.${endTime[1].toString().substring(0, 3).padStart(3, '0')}s`);
     }
-    const endTime = process.hrtime(startTime);
-    spinner.succeed(`finished processing in ${endTime[0]}.${endTime[1].toString().substring(0, 3).padStart(3, '0')}s`);
   } catch (err) {
     spinner.stop();
     if (err instanceof Error) {
@@ -112,6 +129,7 @@ async function pixelPerfectSvg() {
 type Args = {
   input?: string,
   output?: string,
+  recursive?: boolean,
   frame?: number,
   quiet?: boolean,
   verbose?: boolean,

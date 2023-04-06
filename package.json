@@ -1,17 +1,17 @@
 {
-  "name": "pixel-perfect-svg",
+  "name": "psvg",
   "version": "0.1.0",
   "description": "CLI that takes a PNG, GIF, or JPEG file and outputs a pixel perfect SVG",
-  "author": "kagof",
+  "author": "paxies",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kagof/pixel-perfect-svg"
+    "url": "https://github.com/paxies/psvg"
   },
   "bugs": {
-    "url": "https://github.com/kagof/pixel-perfect-svg/issues"
+    "url": "https://github.com/paxies/psvg/issues"
   },
-  "homepage": "https://github.com/kagof/pixel-perfect-svg",
+  "homepage": "https://github.com/paxies/psvg",
   "readme": "README.md",
   "keywords": ["svg", "png", "cli", "pixel", "art"],
   "main": "dist/index.js",
@@ -42,14 +42,16 @@
   "dependencies": {
     "file-type": "^16.5.2",
     "get-pixels": "^3.3.3",
+    "glob": "^9.3.4",
     "ora": "^5.4.1",
+    "svgo": "^3.0.2",
     "untildify": "^4.0.0",
     "yargs": "^17.0.1"
   },
   "devDependencies": {
     "@types/get-pixels": "^3.3.1",
     "@types/jest": "^26.0.24",
-    "@types/node": "^16.4.10",
+    "@types/node": "^16.18.23",
     "@types/ora": "^3.2.0",
     "@types/rewire": "^2.5.28",
     "@types/yargs": "^17.0.2",
